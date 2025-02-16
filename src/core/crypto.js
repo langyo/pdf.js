@@ -693,7 +693,10 @@ class NullCipher {
 
 class AESBaseCipher {
   constructor() {
-    if (this.constructor === AESBaseCipher) {
+    if (
+      (typeof PDFJSDev === "undefined" || PDFJSDev.test("TESTING")) &&
+      this.constructor === AESBaseCipher
+    ) {
       unreachable("Cannot initialize AESBaseCipher.");
     }
 
@@ -1394,13 +1397,7 @@ class CipherTransform {
 
       // Generate an initialization vector
       const iv = new Uint8Array(16);
-      if (typeof crypto !== "undefined") {
-        crypto.getRandomValues(iv);
-      } else {
-        for (let i = 0; i < 16; i++) {
-          iv[i] = Math.floor(256 * Math.random());
-        }
-      }
+      crypto.getRandomValues(iv);
 
       let data = stringToBytes(s);
       data = cipher.encrypt(data, iv);
@@ -1598,12 +1595,10 @@ class CipherTransformFactory {
   }
 
   #buildObjectKey(num, gen, encryptionKey, isAes = false) {
-    const key = new Uint8Array(encryptionKey.length + 9);
     const n = encryptionKey.length;
-    let i;
-    for (i = 0; i < n; ++i) {
-      key[i] = encryptionKey[i];
-    }
+    const key = new Uint8Array(n + 9);
+    key.set(encryptionKey);
+    let i = n;
     key[i++] = num & 0xff;
     key[i++] = (num >> 8) & 0xff;
     key[i++] = (num >> 16) & 0xff;
@@ -1616,7 +1611,7 @@ class CipherTransformFactory {
       key[i++] = 0x54;
     }
     const hash = calculateMD5(key, 0, i);
-    return hash.subarray(0, Math.min(encryptionKey.length + 5, 16));
+    return hash.subarray(0, Math.min(n + 5, 16));
   }
 
   #buildCipherConstructor(cf, name, num, gen, key) {
